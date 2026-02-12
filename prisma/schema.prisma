@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    @default("PRODUTOR") // PRODUTOR | COMPRADOR
+  company       String?
+  document      String?   // CPF ou CNPJ
+  phone         String?
+  city          String?
+  state         String?
+  avatar        String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  offers        Offer[]
+  sentMessages     Message[]    @relation("SentMessages")
+  negotiations1    Negotiation[] @relation("NegotiationUser1")
+  negotiations2    Negotiation[] @relation("NegotiationUser2")
+  proposals        Proposal[]
+  savedOffers      SavedOffer[]
+  contracts        Contract[]
+}
+
+model Offer {
+  id            String    @id @default(cuid())
+  product       String    // soja, milho, trigo, etc.
+  quantity      Float
+  unit          String    @default("tonelada") // tonelada | saca
+  price         Float?
+  city          String
+  state         String
+  deliveryType  String    @default("FOB") // FOB | CIF
+  availableDate DateTime?
+  description   String?
+  status        String    @default("ATIVA") // ATIVA | PAUSADA | VENDIDA
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+
+  negotiations  Negotiation[]
+  savedBy       SavedOffer[]
+}
+
+model SavedOffer {
+  id        String   @id @default(cuid())
+  userId    String
+  offerId   String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+  offer     Offer    @relation(fields: [offerId], references: [id])
+
+  @@unique([userId, offerId])
+}
+
+model Negotiation {
+  id        String   @id @default(cuid())
+  status    String   @default("ABERTA") // ABERTA | FECHADA | CANCELADA
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  offerId   String
+  offer     Offer    @relation(fields: [offerId], references: [id])
+
+  user1Id   String
+  user1     User     @relation("NegotiationUser1", fields: [user1Id], references: [id])
+
+  user2Id   String
+  user2     User     @relation("NegotiationUser2", fields: [user2Id], references: [id])
+
+  messages  Message[]
+  proposals Proposal[]
+  contract  Contract?
+}
+
+model Message {
+  id             String      @id @default(cuid())
+  content        String?
+  type           String      @default("TEXT") // TEXT | FILE | SYSTEM
+  fileUrl        String?
+  fileName       String?
+  createdAt      DateTime    @default(now())
+
+  senderId       String
+  sender         User        @relation("SentMessages", fields: [senderId], references: [id])
+
+  negotiationId  String
+  negotiation    Negotiation @relation(fields: [negotiationId], references: [id])
+}
+
+model Proposal {
+  id             String      @id @default(cuid())
+  product        String
+  quantity       Float
+  unit           String      @default("tonelada")
+  price          Float
+  city           String
+  state          String
+  deliveryType   String      @default("FOB")
+  deliveryDate   String?
+  paymentTerms   String      @default("a_vista") // a_vista | 7_dias | 30_dias
+  observation    String?
+  status         String      @default("PENDENTE") // PENDENTE | ACEITA | RECUSADA | CONTRA_PROPOSTA
+  createdAt      DateTime    @default(now())
+
+  senderId       String
+  sender         User        @relation(fields: [senderId], references: [id])
+
+  negotiationId  String
+  negotiation    Negotiation @relation(fields: [negotiationId], references: [id])
+}
+
+model Contract {
+  id             String      @id @default(cuid())
+  content        String      // JSON com dados do contrato
+  status         String      @default("GERADO") // GERADO | ASSINADO
+  createdAt      DateTime    @default(now())
+
+  negotiationId  String      @unique
+  negotiation    Negotiation @relation(fields: [negotiationId], references: [id])
+
+  generatedById  String
+  generatedBy    User        @relation(fields: [generatedById], references: [id])
+}
