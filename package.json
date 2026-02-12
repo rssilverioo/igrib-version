@@ -6,7 +6,8 @@
     "dev": "concurrently \"next dev\" \"node ws-server.mjs\"",
     "dev:next": "next dev",
     "dev:ws": "node ws-server.mjs",
-    "build": "next build",
+    "build": "prisma generate && next build",
+    "postinstall": "prisma generate",
     "start": "concurrently \"next start\" \"node ws-server.mjs\"",
     "lint": "eslint"
   },
